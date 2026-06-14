@@ -30,3 +30,9 @@ crash_stdout.txt
 
 # Tooling
 .codegraph/
+
+# Builds and releases
+build/
+dist/
+*.spec
+*.zip
