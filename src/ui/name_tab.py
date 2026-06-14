@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTreeWidget, QTreeWidgetItem, QFrame, QComboBox,
     QMessageBox, QProgressBar, QAbstractItemView,
-    QHeaderView, QSplitter, QSizePolicy,
+    QHeaderView, QSplitter, QSizePolicy, QProgressDialog, QApplication
 )
 
 from src.core.file_manager import batch_move_to_trash, format_size, is_send2trash_available
@@ -460,7 +460,22 @@ class NameTab(QWidget):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        ok, fail, errors = batch_move_to_trash(paths)
+        progress = QProgressDialog("Đang chuẩn bị xóa...", "Hủy", 0, len(paths), self)
+        progress.setWindowTitle("Xóa file")
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+
+        def progress_callback(current: int, total: int, path_name: str) -> bool:
+            progress.setValue(current)
+            progress.setLabelText(f"Đang xóa...\n{path_name}")
+            QApplication.processEvents()
+            if progress.wasCanceled():
+                return False
+            return True
+
+        ok, fail, errors = batch_move_to_trash(paths, progress_callback)
+        progress.close()
         if errors:
             QMessageBox.warning(self, "Lỗi", "\n".join(errors[:10]))
 

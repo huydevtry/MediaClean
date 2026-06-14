@@ -11,7 +11,7 @@ import os
 import shutil
 import logging
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Callable, Optional
 
 try:
     from send2trash import send2trash as _send2trash
@@ -57,9 +57,11 @@ def move_to_trash(path: str | Path) -> Tuple[bool, str]:
             return False, f"Xóa thất bại: {exc}"
 
 
-def batch_move_to_trash(paths: List[str | Path]) -> Tuple[int, int, List[str]]:
+def batch_move_to_trash(paths: List[str | Path], callback: Optional[Callable[[int, int, str], bool]] = None) -> Tuple[int, int, List[str]]:
     """
     Move multiple files to trash.
+    If callback is provided, it is called as callback(current_index, total_files, current_path) -> bool.
+    If callback returns False, the operation is canceled.
 
     Returns:
         (success_count, fail_count, error_messages)
@@ -67,14 +69,22 @@ def batch_move_to_trash(paths: List[str | Path]) -> Tuple[int, int, List[str]]:
     success = 0
     fail = 0
     errors: List[str] = []
+    
+    total = len(paths)
+    for i, p in enumerate(paths):
+        if callback:
+            if callback(i, total, str(Path(p).name)) is False:
+                break
 
-    for p in paths:
         ok, msg = move_to_trash(p)
         if ok:
             success += 1
         else:
             fail += 1
             errors.append(msg)
+
+    if callback:
+        callback(total, total, "Hoàn tất")
 
     return success, fail, errors
 
